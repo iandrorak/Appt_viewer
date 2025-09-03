@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Appartement – Viewer iPad & Web</title>
+  <!-- WebComponent model-viewer depuis CDN (compatible GitHub Pages) -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <style>
+    :root { --ui-bg: rgba(0,0,0,.55); --ui-bd: rgba(255,255,255,.08); }
+    html, body { height: 100%; margin: 0; }
+    body { background:#0f1115; color:#e7e7e7; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; overscroll-behavior: none; }
+    header { position: fixed; top:0; left:0; right:0; z-index:10; display:flex; align-items:center; gap:.5rem; padding: calc(.6rem + env(safe-area-inset-top)) .9rem .6rem .9rem; background: var(--ui-bg); backdrop-filter: blur(8px); border-bottom:1px solid var(--ui-bd); }
+    header h1 { margin:0; font-size: 1rem; font-weight: 600; opacity:.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    header .spacer { flex:1; }
+    .btn { appearance:none; border:1px solid var(--ui-bd); background:rgba(255,255,255,.06); color:#fff; padding:.45rem .7rem; border-radius:.6rem; cursor:pointer; font-size:.9rem; }
+    .btn:hover { background:rgba(255,255,255,.12); }
+    .btn:active { transform: translateY(1px); }
+    .btn.icon { width:2.35rem; height:2.35rem; display:grid; place-items:center; font-size:1.1rem; }
+    model-viewer { position: fixed; inset: 0; width:100%; height:100%; outline:none; touch-action: pan-y; }
+    #help { position: fixed; right: 12px; bottom: 12px; z-index: 20; background: var(--ui-bg); backdrop-filter: blur(8px); padding:.6rem .8rem; border-radius:.8rem; font-size:.9rem; line-height:1.35; box-shadow: 0 8px 24px rgba(0,0,0,.35); border:1px solid var(--ui-bd); }
+    #help kbd { background:#1f2430; border:1px solid #2a2f3a; border-bottom-width:2px; border-radius:.35rem; padding:.05rem .35rem; font-size:.85em; }
+    a, a:visited { color:#a9d1ff; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Appartement – Viewer Web (GLB depuis Google Drive)</h1>
+    <div class="spacer"></div>
+    <button id="btnZoomOut" class="btn icon" title="Zoom -" aria-label="Zoom out">−</button>
+    <button id="btnZoomIn" class="btn icon" title="Zoom +" aria-label="Zoom in">+</button>
+    <button id="btnReset" class="btn" title="Recentrer la caméra">Centrer la vue</button>
+    <button id="btnAR" class="btn" title="Basculer en AR (iOS)">Mode AR</button>
+  </header>
+
+  <!-- Lien direct Google Drive -->
+  <model-viewer id="viewer"
+      src="https://drive.google.com/uc?export=download&id=11sK7ko9fFcbkJeIJ9uJveNg1ezuZrnQ3"
+      ios-src="appartement.usdz"               
+      camera-controls                            
+      interaction-prompt="none"                
+      shadow-intensity="0.2"                  
+      shadow-softness="0.6"                   
+      exposure="1"                             
+      environment-image="neutral"              
+      ar ar-modes="quick-look webxr scene-viewer"
+      autoplay
+      reveal="auto"
+      style="--poster-color: transparent;">
+  </model-viewer>
+
+  <div id="help">
+    <div><strong>Gestes iPad</strong></div>
+    <div>🧭 Tourner : glisser (1 doigt)</div>
+    <div>🔍 Zoom : pincer</div>
+    <div>↔️ Déplacer : glisser (2 doigts)</div>
+    <div style="opacity:.9;margin-top:.35rem">💡 iOS : bouton <em>Mode AR</em> → Quick Look</div>
+  </div>
+
+  <script type="module">
+    const mv = document.getElementById('viewer');
+    const btnReset = document.getElementById('btnReset');
+    const btnAR = document.getElementById('btnAR');
+    const btnZoomIn = document.getElementById('btnZoomIn');
+    const btnZoomOut = document.getElementById('btnZoomOut');
+
+    // Réglages par défaut adaptés au plan d'un appartement
+    const DEFAULT_ORBIT = '0deg 65deg auto';
+    const DEFAULT_FOV = 35;
+    const MIN_FOV = 20, MAX_FOV = 60, STEP_FOV = 3;
+
+    mv.addEventListener('load', async () => {
+      try { mv.resetTurntableRotation(0); } catch {}
+      mv.cameraTarget = 'auto';
+      mv.cameraOrbit = DEFAULT_ORBIT;
+      mv.fieldOfView = DEFAULT_FOV + 'deg';
+      await mv.updateComplete;
+      mv.jumpCameraToGoal();
+    });
+
+    btnReset.addEventListener('click', async () => {
+      mv.cameraTarget = 'auto';
+      mv.cameraOrbit = DEFAULT_ORBIT;
+      mv.fieldOfView = DEFAULT_FOV + 'deg';
+      await mv.updateComplete; mv.jumpCameraToGoal();
+    });
+
+    function setFov(fovDeg){
+      const f = Math.max(MIN_FOV, Math.min(MAX_FOV, fovDeg));
+      mv.fieldOfView = f + 'deg';
+    }
+    function getFov(){
+      const v = parseFloat(mv.fieldOfView || DEFAULT_FOV);
+      return isNaN(v) ? DEFAULT_FOV : v;
+    }
+    btnZoomIn.addEventListener('click', () => setFov(getFov() - STEP_FOV));
+    btnZoomOut.addEventListener('click', () => setFov(getFov() + STEP_FOV));
+
+    btnAR.addEventListener('click', () => {
+      if (mv.canActivateAR) mv.activateAR();
+      else alert("L'AR n'est pas disponible sur cet appareil/navigateur.");
+    });
+
+    document.addEventListener('touchmove', (e) => {
+      if (e.target.closest('model-viewer')) e.preventDefault();
+    }, { passive: false });
+  </script>
+</body>
+</html>
